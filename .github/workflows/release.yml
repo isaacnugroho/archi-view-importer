@@ -1,16 +1,16 @@
 name: Release
-on:
-  push:
-    branches:
-      - master
+on: workflow_dispatch
+#  push:
+#    branches:
+#      - main
 jobs:
   release:
     strategy:
       matrix:
         os:
-          - macos-latest
+#          - macos-latest
           - ubuntu-latest
-          - windows-latest
+#          - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
