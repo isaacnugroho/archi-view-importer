@@ -1,0 +1,104 @@
+name: Release
+on:
+  push:
+    branches:
+      - master
+jobs:
+  release:
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --release
+      - name: Test
+        run: cargo test --release
+      - name: Get Cargo Metadata
+        id: cargo
+        shell: bash
+        run: >-
+          echo -n "::set-output name=version::" &&
+          cargo metadata --format-version=1 --no-deps |
+          jq -r '.packages[-1].version' &&
+          echo -n "::set-output name=name::" &&
+          cargo metadata --format-version=1 --no-deps |
+          jq -r '.packages[-1].name'
+      - name: Check if tag is released
+        id: tag
+        shell: bash
+        env:
+          TAG: ${{ steps.cargo.outputs.version }}
+        run: >-
+          git fetch --depth=1 origin "+refs/tags/${TAG}" > /dev/null 2>&1 &&
+          echo "::set-output name=exists::true" ||
+          echo "::set-output name=exists::false"
+      - name: Bundle Release Asset
+        id: asset
+        shell: bash
+        env:
+          NAME: ${{ steps.cargo.outputs.name }}
+          VERSION: ${{ steps.cargo.outputs.version }}
+          OS: ${{ matrix.os }}
+        run: >-
+          export ARCH="linux" &&
+          if [ "$OS" = "macos-latest" ]; then export ARCH="darwin"; fi &&
+          if [ "$OS" = "windows-latest" ]; then export ARCH="win32"; fi &&
+          export ASSET_NAME="${NAME}-v${VERSION}-${ARCH}-x64.tar.gz" &&
+          export ASSET_PATH="${RUNNER_TEMP}/${ASSET_NAME}" &&
+          if [ "$OS" = "windows-latest" ]; then export NAME="${NAME}.exe"; fi &&
+          export BINARY="./target/release/${NAME}" &&
+          if [ "$OS" != "windows-latest" ]; then strip "$BINARY"; fi &&
+          if [ "$OS" != "windows-latest" ]; then tar -czf "$ASSET_PATH" -C "./target/release" "$NAME"; fi &&
+          if [ "$OS" = "windows-latest" ]; then tar --force-local -czf "$ASSET_PATH" -C "./target/release" "$NAME"; fi &&
+          echo -n "::set-output name=path::" &&
+          echo "$ASSET_PATH"
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: steps.tag.outputs.exists == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.cargo.outputs.version }}
+          files: ${{ steps.asset.outputs.path }}
+  retag:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get Cargo Metadata
+        id: cargo
+        shell: bash
+        run: >-
+          echo -n "::set-output name=version::" &&
+          cargo metadata --format-version=1 --no-deps |
+          jq -r '.packages[-1].version'
+      - name: Check if tag is released
+        id: tag
+        shell: bash
+        env:
+          TAG: ${{ steps.cargo.outputs.version }}
+        run: >-
+          git fetch --depth=1 origin "+refs/tags/${TAG}" > /dev/null 2>&1 &&
+          echo "::set-output name=exists::true" ||
+          echo "::set-output name=exists::false"
+      - name: Create semver tags
+        if: steps.tag.outputs.exists == 'false'
+        shell: bash
+        env:
+          VERSION: ${{ steps.cargo.outputs.version }}
+        run: >-
+          export MAJOR_VERSION="$(cut -d'.' -f1 <<< "$VERSION")" &&
+          export MINOR_VERSION="$(cut -d'.' -f1-2 <<< "$VERSION")" &&
+          git tag "$MAJOR_VERSION" &&
+          git tag "$MINOR_VERSION" &&
+          git tag "$VERSION" &&
+          git push -f origin "$MAJOR_VERSION" &&
+          git push -f origin "$MINOR_VERSION" &&
+          git push -f origin "$VERSION"
