@@ -102,3 +102,5 @@ jobs:
           git push -f origin "$MAJOR_VERSION" &&
           git push -f origin "$MINOR_VERSION" &&
           git push -f origin "$VERSION"
+    permissions:
+      contents: write
