@@ -1,12 +1,12 @@
 mod file_descriptor;
 
 use crate::file_descriptor::FileDescriptor;
-use std::collections::{HashMap, HashSet};
-use std::io::{self, Write};
-use std::{env, process};
 use std::borrow::Borrow;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::io::{self, Write};
 use std::str::FromStr;
+use std::{env, process};
 use xot::{output, Node, Xot};
 
 struct ArchiModel<'a> {
@@ -39,11 +39,15 @@ struct FolderInfo {
 }
 
 impl Borrow<str> for FolderInfo {
-    fn borrow(&self) -> &str { self.name.as_str() }
+    fn borrow(&self) -> &str {
+        self.name.as_str()
+    }
 }
 
 impl Borrow<str> for &FolderInfo {
-    fn borrow(&self) -> &str { self.name.as_str() }
+    fn borrow(&self) -> &str {
+        self.name.as_str()
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -219,10 +223,16 @@ fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Er
                         xot.namespace("http://www.w3.org/2001/XMLSchema-instance")
                             .unwrap(),
                     )
-                        .unwrap(),
+                    .unwrap(),
                 ) {
-                    let id = xot.get_attribute(child, xot.name("id").unwrap()).unwrap().to_string();
-                    let name = xot.get_attribute(child, xot.name("name").unwrap()).unwrap_or("").to_string();
+                    let id = xot
+                        .get_attribute(child, xot.name("id").unwrap())
+                        .unwrap()
+                        .to_string();
+                    let name = xot
+                        .get_attribute(child, xot.name("name").unwrap())
+                        .unwrap_or("")
+                        .to_string();
                     let xml_string = xot.serialize_xml_string(Default::default(), child)?;
                     if xsi_type.ends_with("ArchimateDiagramModel") {
                         views.insert(
@@ -246,16 +256,16 @@ fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Er
                         );
                     }
                 }
-
             } else if xot.get_element_name(child) == xot.name("folder").unwrap() {
-                let name = String::from_str(xot.get_attribute(child, xot.name("name").unwrap()).unwrap()).unwrap();
+                let name =
+                    String::from_str(xot.get_attribute(child, xot.name("name").unwrap()).unwrap())
+                        .unwrap();
                 // let id = format!("id-{}", uuid::Uuid::new_v4());
-                let id = String::from_str(xot.get_attribute(child, xot.name("id").unwrap()).unwrap()).unwrap();
+                let id =
+                    String::from_str(xot.get_attribute(child, xot.name("id").unwrap()).unwrap())
+                        .unwrap();
                 let mut new_path = current_path_info.clone();
-                let folder_info = FolderInfo {
-                    id,
-                    name,
-                };
+                let folder_info = FolderInfo { id, name };
                 new_path.push(folder_info);
                 traverse_folders(xot, child, new_path, elements, views)?;
             }
@@ -266,21 +276,32 @@ fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Er
     // Start traversal from the root
     let mut elements = HashMap::new();
     let mut views = HashMap::new();
-    for child in model.xot.children(root)
+    for child in model
+        .xot
+        .children(root)
         .filter(|&n| model.xot.is_element(n))
     {
         let element = model.xot.element(child).unwrap();
         // && model.xot.get_attribute(child, model.xot.name("type").unwrap())
         //     == Some("diagrams")
         if element.name() == model.xot.name("folder").unwrap() {
-            let name = String::from_str(model.xot.get_attribute(child, model.xot.name("name").unwrap()).unwrap()).unwrap();
+            let name = String::from_str(
+                model
+                    .xot
+                    .get_attribute(child, model.xot.name("name").unwrap())
+                    .unwrap(),
+            )
+            .unwrap();
             // let id = format!("id-{}", uuid::Uuid::new_v4());
-            let id = String::from_str(model.xot.get_attribute(child, model.xot.name("id").unwrap()).unwrap()).unwrap();
+            let id = String::from_str(
+                model
+                    .xot
+                    .get_attribute(child, model.xot.name("id").unwrap())
+                    .unwrap(),
+            )
+            .unwrap();
             let mut new_path = vec![];
-            let folder_info = FolderInfo {
-                id,
-                name,
-            };
+            let folder_info = FolderInfo { id, name };
             // println!("{}", folder_info.name);
             new_path.push(folder_info);
             traverse_folders(&model.xot, child, new_path, &mut elements, &mut views)?;
@@ -381,7 +402,9 @@ fn copy_view_with_elements(
         }
 
         // Check if this node references any relations
-        if let Some(relation_ref) = xot.get_attribute(node, xot.name("archimateRelationship").unwrap()) {
+        if let Some(relation_ref) =
+            xot.get_attribute(node, xot.name("archimateRelationship").unwrap())
+        {
             println!(".found relation: {}", relation_ref);
             relations.insert(relation_ref.to_string());
         }
@@ -431,12 +454,17 @@ fn copy_view_with_elements(
     Ok((1, new_elements.len(), new_relations.len()))
 }
 
-fn insert_new_element(source: &mut ArchiModel, target: &mut ArchiModel, element_id: &String) -> Result<(), Box<dyn Error>> {
+fn insert_new_element(
+    source: &mut ArchiModel,
+    target: &mut ArchiModel,
+    element_id: &String,
+) -> Result<(), Box<dyn Error>> {
     if !source.element_map.contains_key(element_id) {
         println!(".Not found in source {}", element_id);
     }
     if let Some(source_element_info) = source.element_map.get(element_id) {
-        let target_element_folder = recursive_find_or_create_folder_path(target, &source_element_info.folder_path)?;
+        let target_element_folder =
+            recursive_find_or_create_folder_path(target, &source_element_info.folder_path)?;
 
         // Clone the element
         println!("creating element {}", source_element_info.xml_string);
@@ -446,14 +474,21 @@ fn insert_new_element(source: &mut ArchiModel, target: &mut ArchiModel, element_
 
         // Add to target folder
         target.xot.append(target_element_folder, cloned_element)?;
-        target.element_map.insert(element_id.clone(), source_element_info.clone());
+        target
+            .element_map
+            .insert(element_id.clone(), source_element_info.clone());
     }
     Ok(())
 }
 
-fn insert_new_view(source: &mut ArchiModel, target: &mut ArchiModel, element_id: &String) -> Result<(), Box<dyn Error>> {
+fn insert_new_view(
+    source: &mut ArchiModel,
+    target: &mut ArchiModel,
+    element_id: &String,
+) -> Result<(), Box<dyn Error>> {
     if let Some(source_element_info) = source.view_map.get(element_id) {
-        let target_element_folder = recursive_find_or_create_folder_path(target, &source_element_info.folder_path)?;
+        let target_element_folder =
+            recursive_find_or_create_folder_path(target, &source_element_info.folder_path)?;
 
         // Clone the element
         println!("creating view {}", source_element_info.xml_string);
@@ -463,7 +498,9 @@ fn insert_new_view(source: &mut ArchiModel, target: &mut ArchiModel, element_id:
         // Add to target folder
         target.xot.append(target_element_folder, cloned_element)?;
 
-        target.element_map.insert(element_id.clone(), source_element_info.clone());
+        target
+            .element_map
+            .insert(element_id.clone(), source_element_info.clone());
     }
     Ok(())
 }
@@ -475,11 +512,17 @@ fn find_or_create_folder(
     let root = model.xot.first_child(model.root).unwrap();
 
     // Look for existing folder with the given type
-    for child in model.xot.children(root).filter(|&n| model.xot.is_element(n))
+    for child in model
+        .xot
+        .children(root)
+        .filter(|&n| model.xot.is_element(n))
     {
         let element = model.xot.element(child).unwrap();
         if element.name() == model.xot.name("folder").unwrap()
-            && model.xot.get_attribute(child, model.xot.name("type").unwrap()) == Some(folder_type)
+            && model
+                .xot
+                .get_attribute(child, model.xot.name("type").unwrap())
+                == Some(folder_type)
         {
             return Ok(child);
         }
@@ -487,7 +530,9 @@ fn find_or_create_folder(
 
     // If not found, create a new folder
     let folder_node = model.xot.new_element(model.xot.name("folder").unwrap());
-    model.xot.set_attribute(folder_node, model.xot.name("type").unwrap(), folder_type);
+    model
+        .xot
+        .set_attribute(folder_node, model.xot.name("type").unwrap(), folder_type);
     model.xot.set_attribute(
         folder_node,
         model.xot.name("id").unwrap(),
@@ -506,7 +551,9 @@ fn find_or_create_folder(
         "diagrams" => "Views",
         _ => "Other",
     };
-    model.xot.set_attribute(folder_node, model.xot.name("name").unwrap(), name);
+    model
+        .xot
+        .set_attribute(folder_node, model.xot.name("name").unwrap(), name);
 
     // Add to root
     model.xot.append(root, folder_node)?;
@@ -536,12 +583,16 @@ fn recursive_find_or_create_folder_path(
         let info_id = folder_info.id.clone();
         let id = info_id.as_str();
 
-        for child in model.xot.children(current)
+        for child in model
+            .xot
+            .children(current)
             .filter(|&n| model.xot.is_element(n))
         {
             let element = model.xot.element(child).unwrap();
             if element.name() == model.xot.name("folder").unwrap()
-                && model.xot.get_attribute(child, model.xot.name("name").unwrap())
+                && model
+                    .xot
+                    .get_attribute(child, model.xot.name("name").unwrap())
                     == Some(folder_name)
             {
                 found = true;
@@ -555,8 +606,12 @@ fn recursive_find_or_create_folder_path(
         } else {
             // Create new subfolder
             let new_folder = model.xot.new_element(model.xot.name("folder").unwrap());
-            model.xot.set_attribute(new_folder, model.xot.name("name").unwrap(), folder_name);
-            model.xot.set_attribute(new_folder, model.xot.name("id").unwrap(), id);
+            model
+                .xot
+                .set_attribute(new_folder, model.xot.name("name").unwrap(), folder_name);
+            model
+                .xot
+                .set_attribute(new_folder, model.xot.name("id").unwrap(), id);
             model.xot.append(current, new_folder)?;
             current = new_folder;
         }

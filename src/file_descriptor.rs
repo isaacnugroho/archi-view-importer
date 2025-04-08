@@ -1,10 +1,10 @@
+use encoding_rs::UTF_8;
 use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
-use zip::{ZipArchive, ZipWriter};
 use zip::write::FileOptions;
 use zip::CompressionMethod;
-use encoding_rs::UTF_8;
+use zip::{ZipArchive, ZipWriter};
 
 #[derive(Debug)]
 pub enum FileDescriptor {
@@ -25,9 +25,7 @@ impl FileDescriptor {
         if let Ok(bytes) = fs::read(&path) {
             let (decoded, _had_errors) = UTF_8.decode_without_bom_handling(&bytes);
             if decoded.contains("<?xml") {
-                return Ok(FileDescriptor::PlainXml {
-                    path,
-                });
+                return Ok(FileDescriptor::PlainXml { path });
             }
         }
 
@@ -57,7 +55,11 @@ impl FileDescriptor {
                 let (decoded, _, _) = UTF_8.decode(&bytes);
                 Ok(decoded.into())
             }
-            FileDescriptor::ZippedXml { zip_path, xml_filename, .. } => {
+            FileDescriptor::ZippedXml {
+                zip_path,
+                xml_filename,
+                ..
+            } => {
                 let file = fs::File::open(zip_path)?;
                 let mut archive = ZipArchive::new(file)?;
 
@@ -76,7 +78,11 @@ impl FileDescriptor {
             FileDescriptor::PlainXml { path, .. } => {
                 fs::write(path, new_xml.as_bytes())?;
             }
-            FileDescriptor::ZippedXml { zip_path, xml_filename, .. } => {
+            FileDescriptor::ZippedXml {
+                zip_path,
+                xml_filename,
+                ..
+            } => {
                 let zip_data = fs::read(zip_path)?;
                 let reader = Cursor::new(zip_data);
                 let mut archive = ZipArchive::new(reader)?;
@@ -88,8 +94,8 @@ impl FileDescriptor {
                     let mut file = archive.by_index(i)?;
                     let name = file.name().to_string();
 
-                    let options: FileOptions<()> = FileOptions::default()
-                        .compression_method(CompressionMethod::Stored);
+                    let options: FileOptions<()> =
+                        FileOptions::default().compression_method(CompressionMethod::Stored);
 
                     zip_writer.start_file(name.clone(), options)?;
 
