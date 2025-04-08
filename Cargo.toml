@@ -1,0 +1,10 @@
+[package]
+name = "archi-view-importer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+zip = "2.6.1"
+encoding_rs = "0.8.35"
+uuid = { version = "1.4.1", features = ["v4"] }
+xot = "0.31.0"
