@@ -156,7 +156,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         target.doc,
     )?;
-    match target_descriptor.write_xml(&*modified_target) {
+    match target_descriptor.write_xml(&modified_target) {
         Ok(_) => println!("✅ Successfully imported views and elements into target file."),
         Err(e) => {
             eprintln!("❌ Error writing to target file: {}", e);
@@ -185,7 +185,7 @@ fn load_model<'a>(
     xot: &'a mut Xot,
     content: &'a str,
 ) -> Result<ArchiModel<'a>, Box<dyn std::error::Error>> {
-    let doc = xot.parse(&content)?;
+    let doc = xot.parse(content)?;
     let root = xot.root(doc);
     let mut model = ArchiModel {
         xot,
@@ -304,7 +304,7 @@ fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Er
             let folder_info = FolderInfo { id, name };
             // println!("{}", folder_info.name);
             new_path.push(folder_info);
-            traverse_folders(&model.xot, child, new_path, &mut elements, &mut views)?;
+            traverse_folders(model.xot, child, new_path, &mut elements, &mut views)?;
         }
     }
     model.element_map = elements;
@@ -417,7 +417,7 @@ fn copy_view_with_elements(
 
     // Extract all referenced elements and relations from the view
     extract_references(
-        &target.xot,
+        target.xot,
         view_node,
         &mut referenced_elements,
         &mut referenced_relations,
@@ -536,7 +536,7 @@ fn find_or_create_folder(
     model.xot.set_attribute(
         folder_node,
         model.xot.name("id").unwrap(),
-        &format!("id-{}", uuid::Uuid::new_v4()),
+        format!("id-{}", uuid::Uuid::new_v4()),
     );
 
     // Add some default name based on type
