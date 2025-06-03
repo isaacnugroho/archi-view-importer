@@ -10,6 +10,14 @@ use std::process;
 use xot::{output, Node, Xot};
 use clap::Parser;
 
+macro_rules! verbose_println {
+    ($verbose:expr, $($arg:tt)*) => {
+        if $verbose {
+            println!($($arg)*)
+        }
+    };
+}
+
 struct ArchiModel<'a> {
     xot: &'a mut Xot,
     doc: Node,
@@ -51,19 +59,15 @@ impl Borrow<str> for &FolderInfo {
     }
 }
 
-/// Command line arguments
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Source Archi file
     source_file: String,
-
-    /// Target Archi file
     target_file: String,
-
-    /// Views to import (can be specified multiple times)
     #[arg(short = 'v', long = "view", num_args = 1)]
     views: Vec<String>,
+    #[arg(long = "verbose")]
+    verbose: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -107,46 +111,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Load and parse files
     let mut source_xot = Xot::new();
     let mut source = load_model(&mut source_xot, &source_content)?;
     let mut target_xot = Xot::new();
     let mut target = load_model(&mut target_xot, &target_content)?;
 
-    // Find views in source that don't exist in target
     let missing_views = find_missing_views(&source, &target);
 
     if missing_views.is_empty() {
         println!("No new views to copy from source to target.");
         return Ok(());
     }
-    // print!("source ids:");
-    // for key in source.element_map.keys() {
-    //     print!(" {}", key);
-    // }
-    // println!();
 
-    // Display missing views with numbering
     println!("\nViews in source that don't exist in target:");
     for (i, view) in missing_views.iter().enumerate() {
         let folder_path = view.folder_path.join(" > ");
         println!("[{}] {} (in folder: {})", i + 1, view.name, folder_path);
     }
 
-    // Get user selection
     let selected_indices = if !args.views.is_empty() {
-        // If views are specified via command line, find their indices
         let mut indices = Vec::new();
         for view_name in args.views {
             if let Some(pos) = missing_views.iter().position(|v| v.name == view_name) {
                 indices.push(pos + 1); // Convert to 1-based index
             } else {
-                eprintln!("Warning: View '{}' not found in source or already exists in target", view_name);
+                verbose_println!(args.verbose, "Warning: View '{}' not found in source or already exists in target", view_name);
             }
         }
         indices
     } else {
-        // If no views specified, prompt user for selection
         let selection = get_input("\nEnter view numbers to copy (e.g., 1,3,5-7 or 'all' for all views): ")?;
         parse_selection(&selection, missing_views.len())?
     };
@@ -155,8 +148,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("No views selected for copying.");
         return Ok(());
     }
-
-    // Copy selected views and related elements
     let mut copied_views = 0;
     let mut copied_elements = 0;
     let mut copied_relations = 0;
@@ -164,7 +155,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for &idx in &selected_indices {
         let view = &missing_views[idx - 1]; // Convert to 0-based index
         let (view_count, element_count, relation_count) =
-            copy_view_with_elements(&mut source, &mut target, view)?;
+            copy_view(&mut source, &mut target, &view, args.verbose)?;
         copied_views += view_count;
         copied_elements += element_count;
         copied_relations += relation_count;
@@ -187,13 +178,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             process::exit(1);
         }
     }
-    // save_model(&target, &target_path)?;
 
-    println!("\nSuccessfully copied:");
-    println!("- {} views", copied_views);
-    println!("- {} elements", copied_elements);
-    println!("- {} relations", copied_relations);
-    // println!("Updated target file saved to: {}", target_path);
+    println!("Successfully copied:\n- {} view{}\n- {} element{}\n- {} relation{}",
+        copied_views,
+        if copied_views == 1 { "" } else { "s" },
+        copied_elements,
+        if copied_elements == 1 { "" } else { "s" },
+        copied_relations,
+        if copied_relations == 1 { "" } else { "s" }
+    );
     Ok(())
 }
 
@@ -226,7 +219,6 @@ fn load_model<'a>(
 fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Error>> {
     let root = model.xot.first_child(model.root).unwrap();
 
-    // Function to traverse folders recursively
     fn traverse_folders(
         xot: &Xot,
         node: Node,
@@ -235,7 +227,7 @@ fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Er
         views: &mut HashMap<String, ElementInfo>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let current_path_info = &current_path.clone();
-        for child in xot.children(node) {
+        for child in xot.children(node).filter(|&n| xot.is_element(n)) {
             if !xot.is_element(child) {
                 continue;
             }
@@ -316,7 +308,6 @@ fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Er
                     .unwrap(),
             )
             .unwrap();
-            // let id = format!("id-{}", uuid::Uuid::new_v4());
             let id = String::from_str(
                 model
                     .xot
@@ -326,7 +317,6 @@ fn extract_elements(model: &mut ArchiModel) -> Result<(), Box<dyn std::error::Er
             .unwrap();
             let mut new_path = vec![];
             let folder_info = FolderInfo { id, name };
-            // println!("{}", folder_info.name);
             new_path.push(folder_info);
             traverse_folders(model.xot, child, new_path, &mut elements, &mut views)?;
         }
@@ -400,10 +390,11 @@ fn parse_selection(
     Ok(result)
 }
 
-fn copy_view_with_elements(
+fn copy_view(
     source: &mut ArchiModel,
     target: &mut ArchiModel,
     view: &MissingElementInfo,
+    verbose: bool,
 ) -> Result<(usize, usize, usize), Box<dyn std::error::Error>> {
     let source_info = source.view_map.get(&view.id).unwrap();
     let view_node = target.xot.parse_fragment(source_info.xml_string.as_str())?;
@@ -418,24 +409,20 @@ fn copy_view_with_elements(
         node: Node,
         elements: &mut HashSet<String>,
         relations: &mut HashSet<String>,
+        verbose: bool,
     ) {
-        // Check if this node references any elements
         if let Some(element_ref) = xot.get_attribute(node, xot.name("archimateElement").unwrap()) {
-            println!(".found element: {}", element_ref);
+            verbose_println!(verbose, ".found element: {}", element_ref);
             elements.insert(element_ref.to_string());
         }
-
-        // Check if this node references any relations
         if let Some(relation_ref) =
             xot.get_attribute(node, xot.name("archimateRelationship").unwrap())
         {
-            println!(".found relation: {}", relation_ref);
+            verbose_println!(verbose, ".found relation: {}", relation_ref);
             relations.insert(relation_ref.to_string());
         }
-
-        // Recursively check children
         for child in xot.children(node).filter(|&n| xot.is_element(n)) {
-            extract_references(xot, child, elements, relations);
+            extract_references(xot, child, elements, relations, verbose);
         }
     }
 
@@ -445,9 +432,9 @@ fn copy_view_with_elements(
         view_node,
         &mut referenced_elements,
         &mut referenced_relations,
+        verbose,
     );
 
-    // Filter to only those not already in target
     let new_elements: Vec<_> = referenced_elements
         .iter()
         .filter(|id| !target.element_map.contains_key(*id))
@@ -460,21 +447,15 @@ fn copy_view_with_elements(
         .cloned()
         .collect();
 
-    // Now copy elements to target
     for element_id in &new_elements {
-        println!(".new elements {}", element_id);
-        insert_new_element(source, target, element_id)?;
+        verbose_println!(verbose, ".new elements {}", element_id);
+        insert_new_element(source, target, element_id, verbose)?;
     }
-
-    // Copy relations to target
     for element_id in &new_relations {
-        println!(".new relations {}", element_id);
-        insert_new_element(source, target, element_id)?;
+        verbose_println!(verbose, ".new relations {}", element_id);
+        insert_new_element(source, target, element_id, verbose)?;
     }
-
     insert_new_view(source, target, &view.id)?;
-
-    // Return counts of what was copied
     Ok((1, new_elements.len(), new_relations.len()))
 }
 
@@ -482,21 +463,18 @@ fn insert_new_element(
     source: &mut ArchiModel,
     target: &mut ArchiModel,
     element_id: &String,
+    verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
     if !source.element_map.contains_key(element_id) {
-        println!(".Not found in source {}", element_id);
+        verbose_println!(verbose, ".Not found in source {}", element_id);
     }
     if let Some(source_element_info) = source.element_map.get(element_id) {
         let target_element_folder =
             recursive_find_or_create_folder_path(target, &source_element_info.folder_path)?;
 
-        // Clone the element
-        println!("creating element {}", source_element_info.xml_string);
+        verbose_println!(verbose, "creating element {}", source_element_info.xml_string);
         let cloned_node = target.xot.parse(source_element_info.xml_string.as_str())?;
         let cloned_element = target.xot.document_element(cloned_node)?;
-        // let cloned_element = target.xot.parse_fragment(source_element_info.xml_string.as_str())?;
-
-        // Add to target folder
         target.xot.append(target_element_folder, cloned_element)?;
         target
             .element_map
@@ -514,12 +492,9 @@ fn insert_new_view(
         let target_element_folder =
             recursive_find_or_create_folder_path(target, &source_element_info.folder_path)?;
 
-        // Clone the element
-        println!("creating view {}", source_element_info.xml_string);
+        println!("Creating view {}", source_element_info.xml_string);
         let cloned_node = target.xot.parse(source_element_info.xml_string.as_str())?;
         let cloned_element = target.xot.document_element(cloned_node)?;
-
-        // Add to target folder
         target.xot.append(target_element_folder, cloned_element)?;
 
         target
@@ -535,7 +510,6 @@ fn find_or_create_folder(
 ) -> Result<Node, Box<dyn std::error::Error>> {
     let root = model.xot.first_child(model.root).unwrap();
 
-    // Look for existing folder with the given type
     for child in model
         .xot
         .children(root)
@@ -552,7 +526,6 @@ fn find_or_create_folder(
         }
     }
 
-    // If not found, create a new folder
     let folder_node = model.xot.new_element(model.xot.name("folder").unwrap());
     model
         .xot
@@ -563,7 +536,6 @@ fn find_or_create_folder(
         format!("id-{}", uuid::Uuid::new_v4()),
     );
 
-    // Add some default name based on type
     let name = match folder_type {
         "business" => "Business",
         "application" => "Application",
@@ -579,7 +551,6 @@ fn find_or_create_folder(
         .xot
         .set_attribute(folder_node, model.xot.name("name").unwrap(), name);
 
-    // Add to root
     model.xot.append(root, folder_node)?;
 
     Ok(folder_node)
@@ -590,16 +561,11 @@ fn recursive_find_or_create_folder_path(
     folder_path: &[FolderInfo],
 ) -> Result<Node, Box<dyn std::error::Error>> {
     if folder_path.is_empty() {
-        // If no path specified, use the default diagrams folder
         return find_or_create_folder(model, "diagrams");
     }
 
-    // First make sure the diagrams root folder exists
-    // let mut current = find_or_create_folder(model, "diagrams")?;
     let mut current = model.xot.first_child(model.root).unwrap();
-    // Now create or find each subfolder in the path
     for folder_info in folder_path {
-        // Look for existing subfolder
         let mut found = false;
         let mut next_folder = None;
         let info_name = folder_info.name.clone();
@@ -628,7 +594,6 @@ fn recursive_find_or_create_folder_path(
         if found {
             current = next_folder.unwrap();
         } else {
-            // Create new subfolder
             let new_folder = model.xot.new_element(model.xot.name("folder").unwrap());
             model
                 .xot
