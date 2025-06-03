@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="(new model)" id="id-764cd43f99fe4172ab084f559b7a9482" version="5.0.0">
+  <folder name="Strategy" id="id-d7c5b98a08774c2886010f8cef85064e" type="strategy"/>
+  <folder name="Business" id="id-9ee7da76a89a4d04b3b933ff9de752c2" type="business">
+    <element xsi:type="archimate:BusinessProcess" name="Business Process" id="id-58fff46a03874e86b1f7b7cd7cc04959"/>
+    <element xsi:type="archimate:BusinessRole" name="Business Role" id="id-88694acea1424926bd101321b190db63"/>
+  </folder>
+  <folder name="Application" id="id-8520096ad9134e6cb5d5b65f969ebac2" type="application"/>
+  <folder name="Technology &amp; Physical" id="id-26f6837a929b47be9b9a99d9ad29ccc6" type="technology"/>
+  <folder name="Motivation" id="id-cadd27f7219d4137be8c8c859c986298" type="motivation"/>
+  <folder name="Implementation &amp; Migration" id="id-fa8f184cc6f4477597f10e3f8093daae" type="implementation_migration"/>
+  <folder name="Other" id="id-bbed662d071046eba6dd9658ed415198" type="other"/>
+  <folder name="Relations" id="id-c220b7cc14a5425496389693b890c51f" type="relations">
+    <element xsi:type="archimate:AssignmentRelationship" id="id-41a72bd122f0459ab733f802824e621d" source="id-88694acea1424926bd101321b190db63" target="id-58fff46a03874e86b1f7b7cd7cc04959"/>
+  </folder>
+  <folder name="Views" id="id-55676b78c64443ff853018bf6a407c50" type="diagrams">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="Default View" id="id-b3832661dc8d4fc4974d3381416286bd">
+      <child xsi:type="archimate:DiagramObject" id="id-20aba56c54714b43bfb3944d454228cb" targetConnections="id-89fc85f83c994cc8a36e171ec35e04ea" lineColor="#4f4f4f" fillColor="#ffffe6" archimateElement="id-58fff46a03874e86b1f7b7cd7cc04959">
+        <bounds x="24" y="126" width="144" height="60"/>
+        <feature name="deriveElementLineColor" value="false"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-35081df363574efb9a6f751fa29c8ec2" lineColor="#4f4f4f" fillColor="#e6ffff" archimateElement="id-88694acea1424926bd101321b190db63">
+        <bounds x="14" y="15" width="144" height="60"/>
+        <feature name="deriveElementLineColor" value="false"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-89fc85f83c994cc8a36e171ec35e04ea" lineColor="#000000" source="id-35081df363574efb9a6f751fa29c8ec2" target="id-20aba56c54714b43bfb3944d454228cb" archimateRelationship="id-41a72bd122f0459ab733f802824e621d"/>
+      </child>
+    </element>
+  </folder>
+</archimate:model>

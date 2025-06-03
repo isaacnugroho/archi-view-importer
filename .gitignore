@@ -1,4 +1,5 @@
 target/
 *.archimate
+!tests/*.archimate
 .idea/
 *.xml

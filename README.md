@@ -13,8 +13,12 @@ A tool for importing view(s) between Archi documents.
 
 ## Usage
 ```sh
-archi-view-importer <source_archi_file> <target_archi_file>
+archi-view-importer <source_archi_file> <target_archi_file> [--view <view_name> [--view <view_name> ...]] [--verbose]
 ```
+
+Options:
+- `--view <view_name>` or `-v <view_name>`: Specify views to copy (can be used multiple times)
+- `--verbose`: Show detailed progress information
 
 ## Requirements
 - Rust
