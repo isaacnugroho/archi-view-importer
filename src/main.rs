@@ -1,14 +1,14 @@
 mod file_descriptor;
 
 use crate::file_descriptor::FileDescriptor;
+use clap::Parser;
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io::{self, Write};
-use std::str::FromStr;
 use std::process;
+use std::str::FromStr;
 use xot::{output, Node, Xot};
-use clap::Parser;
 
 macro_rules! verbose_println {
     ($verbose:expr, $($arg:tt)*) => {
@@ -135,12 +135,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(pos) = missing_views.iter().position(|v| v.name == view_name) {
                 indices.push(pos + 1); // Convert to 1-based index
             } else {
-                verbose_println!(args.verbose, "Warning: View '{}' not found in source or already exists in target", view_name);
+                verbose_println!(
+                    args.verbose,
+                    "Warning: View '{}' not found in source or already exists in target",
+                    view_name
+                );
             }
         }
         indices
     } else {
-        let selection = get_input("\nEnter view numbers to copy (e.g., 1,3,5-7 or 'all' for all views): ")?;
+        let selection =
+            get_input("\nEnter view numbers to copy (e.g., 1,3,5-7 or 'all' for all views): ")?;
         parse_selection(&selection, missing_views.len())?
     };
 
@@ -179,7 +184,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    println!("Successfully copied:\n- {} view{}\n- {} element{}\n- {} relation{}",
+    println!(
+        "Successfully copied:\n- {} view{}\n- {} element{}\n- {} relation{}",
         copied_views,
         if copied_views == 1 { "" } else { "s" },
         copied_elements,
@@ -472,7 +478,11 @@ fn insert_new_element(
         let target_element_folder =
             recursive_find_or_create_folder_path(target, &source_element_info.folder_path)?;
 
-        verbose_println!(verbose, "creating element {}", source_element_info.xml_string);
+        verbose_println!(
+            verbose,
+            "creating element {}",
+            source_element_info.xml_string
+        );
         let cloned_node = target.xot.parse(source_element_info.xml_string.as_str())?;
         let cloned_element = target.xot.document_element(cloned_node)?;
         target.xot.append(target_element_folder, cloned_element)?;
@@ -667,10 +677,10 @@ mod tests {
             <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate'>
                 <folder type='diagrams' name='Views' id='folder-1'/>
             </archimate:model>"#;
-        
+
         let mut xot = Xot::new();
         let model = load_model(&mut xot, xml)?;
-        
+
         assert!(model.view_map.is_empty());
         Ok(())
     }
@@ -681,19 +691,25 @@ mod tests {
         let mut target_xot = Xot::new();
 
         // Create source model with one view
-        let source = load_model(&mut source_xot, r#"<?xml version='1.0' encoding='UTF-8'?>
+        let source = load_model(
+            &mut source_xot,
+            r#"<?xml version='1.0' encoding='UTF-8'?>
             <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
                 <folder type='diagrams' name='Views' id='folder-1'>
                     <element xsi:type='archimate:ArchimateDiagramModel' 
                             id='view-1' name='Test View'/>
                 </folder>
-            </archimate:model>"#)?;
+            </archimate:model>"#,
+        )?;
 
         // Create target model with no views
-        let target = load_model(&mut target_xot, r#"<?xml version='1.0' encoding='UTF-8'?>
+        let target = load_model(
+            &mut target_xot,
+            r#"<?xml version='1.0' encoding='UTF-8'?>
             <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate'>
                 <folder type='diagrams' name='Views' id='folder-1'/>
-            </archimate:model>"#)?;
+            </archimate:model>"#,
+        )?;
 
         let missing = find_missing_views(&source, &target);
         assert_eq!(missing.len(), 1);
@@ -706,10 +722,13 @@ mod tests {
     #[test]
     fn test_recursive_find_or_create_folder_path() -> Result<(), Box<dyn Error>> {
         let mut xot = Xot::new();
-        let mut model = load_model(&mut xot, r#"<?xml version='1.0' encoding='UTF-8'?>
+        let mut model = load_model(
+            &mut xot,
+            r#"<?xml version='1.0' encoding='UTF-8'?>
             <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate'>
                 <folder type='diagrams' name='Views' id='folder-1'/>
-            </archimate:model>"#)?;
+            </archimate:model>"#,
+        )?;
 
         let folder_path = vec![
             FolderInfo {
@@ -723,7 +742,9 @@ mod tests {
         ];
 
         let folder = recursive_find_or_create_folder_path(&mut model, &folder_path)?;
-        let folder_name = model.xot.get_attribute(folder, model.xot.name("name").unwrap());
+        let folder_name = model
+            .xot
+            .get_attribute(folder, model.xot.name("name").unwrap());
         assert_eq!(folder_name, Some("Level 2"));
 
         Ok(())

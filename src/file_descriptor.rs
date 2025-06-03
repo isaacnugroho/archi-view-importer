@@ -142,7 +142,7 @@ mod tests {
     fn test_from_path_zipped_xml() -> Result<(), Box<dyn std::error::Error>> {
         let dir = tempdir()?;
         let zip_path = dir.path().join("test.zip");
-        
+
         {
             let file = fs::File::create(&zip_path)?;
             let mut zip = ZipWriter::new(file);
@@ -153,7 +153,10 @@ mod tests {
 
         let descriptor = FileDescriptor::from_path(&zip_path)?;
         match descriptor {
-            FileDescriptor::ZippedXml { zip_path: path, xml_filename } => {
+            FileDescriptor::ZippedXml {
+                zip_path: path,
+                xml_filename,
+            } => {
                 assert_eq!(path, zip_path);
                 assert_eq!(xml_filename, "model.xml");
                 Ok(())
@@ -184,7 +187,7 @@ mod tests {
         let dir = tempdir()?;
         let zip_path = dir.path().join("test.zip");
         let initial_content = "<?xml version=\"1.0\"?><root></root>";
-        
+
         {
             let file = fs::File::create(&zip_path)?;
             let mut zip = ZipWriter::new(file);
