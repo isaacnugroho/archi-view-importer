@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="testmodel" id="id-873bb8e4d07a4eb9b388da8c9e350ef0" version="5.0.0">
+  <folder name="Strategy" id="id-e3bcc3b325ea44ef9732d2e0a9fab3d9" type="strategy">
+    <element xsi:type="archimate:Capability" name="Capability" id="id-d2e1d7aa82e14af5a32a4be59ce6f72e"/>
+  </folder>
+  <folder name="Business" id="id-635d4358c5e74891b8dd2e2a77a937af" type="business"/>
+  <folder name="Application" id="id-b917632f282f44b3959d2ce70fed7202" type="application">
+    <element xsi:type="archimate:ApplicationComponent" name="Application Component" id="id-a0d52c37910b48b3a80c8b8be102d877"/>
+    <element xsi:type="archimate:ApplicationInterface" name="Application Interface" id="id-c6691ea6aa8a4bc8b1e500260ca236c8"/>
+  </folder>
+  <folder name="Technology &amp; Physical" id="id-2224034205254147888783c7b3af65e3" type="technology"/>
+  <folder name="Motivation" id="id-6b28829c00c949aebb7b3868133be68c" type="motivation"/>
+  <folder name="Implementation &amp; Migration" id="id-663adeeffac44430af7d9103f5253da4" type="implementation_migration"/>
+  <folder name="Other" id="id-a2a4b78ca60f4adbb6437c442230b549" type="other"/>
+  <folder name="Relations" id="id-11bced5287b244869d6a5e1ba9a4e0cd" type="relations">
+    <element xsi:type="archimate:RealizationRelationship" id="id-d92ce6e3a2ee45ce8269fa7a0399a882" source="id-a0d52c37910b48b3a80c8b8be102d877" target="id-c6691ea6aa8a4bc8b1e500260ca236c8"/>
+  </folder>
+  <folder name="Views" id="id-7903a3496ea044d8b829cb8f8fd2b400" type="diagrams">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="Default View" id="id-ea1025087eeb4c608d070157218992bf">
+      <child xsi:type="archimate:DiagramObject" id="id-23aca3da0ede46fcbb3124e68fcad485" lineColor="#4f4f4f" fillColor="#afffff" archimateElement="id-a0d52c37910b48b3a80c8b8be102d877" type="1">
+        <bounds x="18" y="144" width="144" height="60"/>
+        <feature name="deriveElementLineColor" value="false"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-0b89671c9b934d28bc858d87ab526494" lineColor="#000000" source="id-23aca3da0ede46fcbb3124e68fcad485" target="id-4afa0022910f44ada8998626bfcaf6ee" archimateRelationship="id-d92ce6e3a2ee45ce8269fa7a0399a882"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-4afa0022910f44ada8998626bfcaf6ee" targetConnections="id-0b89671c9b934d28bc858d87ab526494" lineColor="#4f4f4f" fillColor="#afffff" archimateElement="id-c6691ea6aa8a4bc8b1e500260ca236c8">
+        <bounds x="172" y="45" width="144" height="60"/>
+        <feature name="deriveElementLineColor" value="false"/>
+      </child>
+    </element>
+    <element xsi:type="archimate:ArchimateDiagramModel" name="Default_Vew" id="id-ccbd94c7a8ac4eba9c32e5193b3a6ffe">
+      <child xsi:type="archimate:DiagramObject" id="id-ac2971115dd7403093902c77b663e5ce" lineColor="#4f4f4f" fillColor="#afffff" archimateElement="id-a0d52c37910b48b3a80c8b8be102d877" type="1">
+        <bounds x="18" y="144" width="144" height="60"/>
+        <feature name="deriveElementLineColor" value="false"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-1e7f7c46b29a4a77885bf6f896fdb0b2" lineColor="#000000" source="id-ac2971115dd7403093902c77b663e5ce" target="id-57f03e495e254df1bbda08396fd6f502" archimateRelationship="id-d92ce6e3a2ee45ce8269fa7a0399a882"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-57f03e495e254df1bbda08396fd6f502" targetConnections="id-1e7f7c46b29a4a77885bf6f896fdb0b2" lineColor="#4f4f4f" fillColor="#afffff" archimateElement="id-c6691ea6aa8a4bc8b1e500260ca236c8">
+        <bounds x="172" y="45" width="144" height="60"/>
+        <feature name="deriveElementLineColor" value="false"/>
+      </child>
+    </element>
+  </folder>
+</archimate:model>
