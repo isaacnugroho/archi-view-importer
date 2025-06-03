@@ -160,7 +160,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for &idx in &selected_indices {
         let view = &missing_views[idx - 1]; // Convert to 0-based index
         let (view_count, element_count, relation_count) =
-            copy_view(&mut source, &mut target, &view, args.verbose)?;
+            copy_view(&mut source, &mut target, view, args.verbose)?;
         copied_views += view_count;
         copied_elements += element_count;
         copied_relations += relation_count;
