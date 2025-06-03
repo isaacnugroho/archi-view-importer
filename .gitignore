@@ -1,5 +1,5 @@
 target/
 *.archimate
-!test-files/*.archimate
+!tests/*.archimate
 .idea/
 *.xml

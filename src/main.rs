@@ -6,8 +6,9 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io::{self, Write};
 use std::str::FromStr;
-use std::{env, process};
+use std::process;
 use xot::{output, Node, Xot};
+use clap::Parser;
 
 struct ArchiModel<'a> {
     xot: &'a mut Xot,
@@ -50,15 +51,25 @@ impl Borrow<str> for &FolderInfo {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("Usage: {} <source_archi_file> <target_archi_file>", args[0]);
-        process::exit(1);
-    }
+/// Command line arguments
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Source Archi file
+    source_file: String,
 
-    let source_file = &args[1];
-    let target_file = &args[2];
+    /// Target Archi file
+    target_file: String,
+
+    /// Views to import (can be specified multiple times)
+    #[arg(short = 'v', long = "view", num_args = 1)]
+    views: Vec<String>,
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+    let source_file = &args.source_file;
+    let target_file = &args.target_file;
 
     println!("-+ Analyzing Archi files");
     println!(" +- Source: {}", source_file);
@@ -123,9 +134,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Get user selection
-    let selection =
-        get_input("\nEnter view numbers to copy (e.g., 1,3,5-7 or 'all' for all views): ")?;
-    let selected_indices = parse_selection(&selection, missing_views.len())?;
+    let selected_indices = if !args.views.is_empty() {
+        // If views are specified via command line, find their indices
+        let mut indices = Vec::new();
+        for view_name in args.views {
+            if let Some(pos) = missing_views.iter().position(|v| v.name == view_name) {
+                indices.push(pos + 1); // Convert to 1-based index
+            } else {
+                eprintln!("Warning: View '{}' not found in source or already exists in target", view_name);
+            }
+        }
+        indices
+    } else {
+        // If no views specified, prompt user for selection
+        let selection = get_input("\nEnter view numbers to copy (e.g., 1,3,5-7 or 'all' for all views): ")?;
+        parse_selection(&selection, missing_views.len())?
+    };
 
     if selected_indices.is_empty() {
         println!("No views selected for copying.");
@@ -157,9 +181,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         target.doc,
     )?;
     match target_descriptor.write_xml(&modified_target) {
-        Ok(_) => println!("✅ Successfully imported views and elements into target file."),
+        Ok(_) => println!("Successfully imported views and elements into target file."),
         Err(e) => {
-            eprintln!("❌ Error writing to target file: {}", e);
+            eprintln!("Error writing to target file: {}", e);
             process::exit(1);
         }
     }

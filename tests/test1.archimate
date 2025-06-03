@@ -27,7 +27,7 @@
         <feature name="deriveElementLineColor" value="false"/>
       </child>
     </element>
-    <element xsi:type="archimate:ArchimateDiagramModel" name="Default_Vew" id="id-ccbd94c7a8ac4eba9c32e5193b3a6ffe">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="Default_View" id="id-ccbd94c7a8ac4eba9c32e5193b3a6ffe">
       <child xsi:type="archimate:DiagramObject" id="id-ac2971115dd7403093902c77b663e5ce" lineColor="#4f4f4f" fillColor="#afffff" archimateElement="id-a0d52c37910b48b3a80c8b8be102d877" type="1">
         <bounds x="18" y="144" width="144" height="60"/>
         <feature name="deriveElementLineColor" value="false"/>
