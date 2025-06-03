@@ -60,9 +60,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source_file = &args[1];
     let target_file = &args[2];
 
-    println!("📂 Analyzing Archi files");
-    println!(" ├─ Source: {}", source_file);
-    println!(" └─ Target: {}", target_file);
+    println!("-+ Analyzing Archi files");
+    println!(" +- Source: {}", source_file);
+    println!(" +- Target: {}", target_file);
 
     let source_descriptor = match FileDescriptor::from_path(source_file) {
         Ok(file_descriptor) => file_descriptor,
