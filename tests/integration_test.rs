@@ -84,8 +84,7 @@ fn test_cli_view_selection_non_verbose() -> Result<(), Box<dyn std::error::Error
     let error_str = String::from_utf8(output.stderr)?;
     println!("=== STDOUT ===\n{}\n=== STDERR ===\n{}", output_str, error_str);
     
-    // Only basic output should be present
-    assert!(output_str.contains("[1] Default View"));
+    assert!(output_str.contains("Creating view Default View"));
     assert!(!output_str.contains(".found element:"));
     assert!(!output_str.contains(".found relation:"));
     assert!(!output_str.contains(".new elements"));
