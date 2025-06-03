@@ -619,3 +619,124 @@ fn recursive_find_or_create_folder_path(
 
     Ok(current)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_folder_info_borrow() {
+        let folder = FolderInfo {
+            id: "id-1".to_string(),
+            name: "Test Folder".to_string(),
+        };
+        let borrowed: &str = folder.borrow();
+        assert_eq!(borrowed, "Test Folder");
+        let borrowed2: &str = (&folder).borrow();
+        assert_eq!(borrowed2, "Test Folder");
+    }
+
+    #[test]
+    fn test_parse_selection_single() -> Result<(), Box<dyn Error>> {
+        let result = parse_selection("1", 5)?;
+        assert_eq!(result, vec![1]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_selection_multiple() -> Result<(), Box<dyn Error>> {
+        let result = parse_selection("1,3,5", 5)?;
+        assert_eq!(result, vec![1, 3, 5]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_selection_range() -> Result<(), Box<dyn Error>> {
+        let result = parse_selection("1-3", 5)?;
+        assert_eq!(result, vec![1, 2, 3]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_selection_all() -> Result<(), Box<dyn Error>> {
+        let result = parse_selection("all", 3)?;
+        assert_eq!(result, vec![1, 2, 3]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_selection_invalid() {
+        assert!(parse_selection("0", 5).is_err());
+        assert!(parse_selection("6", 5).is_err());
+        assert!(parse_selection("1,6", 5).is_err());
+        assert!(parse_selection("invalid", 5).is_err());
+    }
+
+    #[test]
+    fn test_load_model() -> Result<(), Box<dyn Error>> {
+        let xml = r#"<?xml version='1.0' encoding='UTF-8'?>
+            <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate'>
+                <folder type='diagrams' name='Views' id='folder-1'/>
+            </archimate:model>"#;
+        
+        let mut xot = Xot::new();
+        let model = load_model(&mut xot, xml)?;
+        
+        assert!(model.view_map.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_find_missing_views() -> Result<(), Box<dyn Error>> {
+        let mut source_xot = Xot::new();
+        let mut target_xot = Xot::new();
+
+        // Create source model with one view
+        let source = load_model(&mut source_xot, r#"<?xml version='1.0' encoding='UTF-8'?>
+            <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+                <folder type='diagrams' name='Views' id='folder-1'>
+                    <element xsi:type='archimate:ArchimateDiagramModel' 
+                            id='view-1' name='Test View'/>
+                </folder>
+            </archimate:model>"#)?;
+
+        // Create target model with no views
+        let target = load_model(&mut target_xot, r#"<?xml version='1.0' encoding='UTF-8'?>
+            <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate'>
+                <folder type='diagrams' name='Views' id='folder-1'/>
+            </archimate:model>"#)?;
+
+        let missing = find_missing_views(&source, &target);
+        assert_eq!(missing.len(), 1);
+        assert_eq!(missing[0].id, "view-1");
+        assert_eq!(missing[0].name, "Test View");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_recursive_find_or_create_folder_path() -> Result<(), Box<dyn Error>> {
+        let mut xot = Xot::new();
+        let mut model = load_model(&mut xot, r#"<?xml version='1.0' encoding='UTF-8'?>
+            <archimate:model xmlns:archimate='http://www.archimatetool.com/archimate'>
+                <folder type='diagrams' name='Views' id='folder-1'/>
+            </archimate:model>"#)?;
+
+        let folder_path = vec![
+            FolderInfo {
+                id: "folder-1".to_string(),
+                name: "Level 1".to_string(),
+            },
+            FolderInfo {
+                id: "folder-2".to_string(),
+                name: "Level 2".to_string(),
+            },
+        ];
+
+        let folder = recursive_find_or_create_folder_path(&mut model, &folder_path)?;
+        let folder_name = model.xot.get_attribute(folder, model.xot.name("name").unwrap());
+        assert_eq!(folder_name, Some("Level 2"));
+
+        Ok(())
+    }
+}
