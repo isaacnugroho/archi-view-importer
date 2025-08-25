@@ -23,6 +23,11 @@ Options:
 ## Requirements
 - Rust
 
+## To Do
+- [ ] Specialization
+- [ ] images
+- [ ] Sketch views
+
 ## Contributing
 1. Fork the repository
 2. Create your feature branch
